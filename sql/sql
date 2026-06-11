@@ -1,0 +1,90 @@
+USE robotics_lab;
+
+
+/* Query 1: Robot Performance
+Calculates success rate, total trials, and average trial duration per robot. Robots with low success rates are flagged for maintenance. */
+
+SELECT 
+  robot_id,
+  COUNT(*) AS total_trials,
+  SUM(CASE WHEN success_status = 'Success' THEN 1 ELSE 0 END) AS successful_trials,
+  ROUND(SUM(CASE WHEN success_status = 'Success' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS success_rate_pct,
+  ROUND(AVG(trial_duration_sec), 1) AS avg_duration_sec,
+  ROUND(AVG(confidence_score), 3) AS avg_confidence_score
+FROM robotics_trials
+GROUP BY robot_id
+ORDER BY success_rate_pct DESC;
+
+/* Query 2 — Task Difficulty Analysis
+Ranks tasks by success rate and average confidence score to identify which task types need more training or tuning. */
+SELECT 
+  task_name,
+  COUNT(*) AS total_trials,
+  SUM(CASE WHEN success_status = 'Success' THEN 1 ELSE 0 END) AS successful_trials,
+  ROUND(SUM(CASE WHEN success_status = 'Success' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS success_rate_pct,
+  ROUND(AVG(trial_duration_sec), 1) AS avg_duration_sec,
+  ROUND(AVG(confidence_score), 3) AS avg_confidence_score
+FROM robotics_trials
+GROUP BY task_name
+ORDER BY success_rate_pct DESC;
+
+/*Query 3 — Operator Performance Scorecard
+Scores each operator by success rate, trial volume, and avg trial duration. Useful for identifying top performers and training needs.
+*/
+SELECT 
+  operator,
+  COUNT(*) AS total_trials,
+  SUM(CASE WHEN success_status = 'Success' THEN 1 ELSE 0 END) AS successful_trials,
+  ROUND(SUM(CASE WHEN success_status = 'Success' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS success_rate_pct,
+  ROUND(AVG(trial_duration_sec), 1) AS avg_duration_sec,
+  ROUND(AVG(confidence_score), 3) AS avg_confidence_score
+FROM robotics_trials
+GROUP BY operator
+ORDER BY success_rate_pct DESC;
+
+/*
+Query 4 — Shift Analysis
+Compares AM vs PM shift performance. Night shifts often show fatigue-related performance dips — this query surfaces that pattern.
+*/
+SELECT 
+  shift,
+  COUNT(*) AS total_trials,
+  SUM(CASE WHEN success_status = 'Success' THEN 1 ELSE 0 END) AS successful_trials,
+  ROUND(SUM(CASE WHEN success_status = 'Success' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS success_rate_pct,
+  ROUND(AVG(trial_duration_sec), 1) AS avg_duration_sec,
+  ROUND(AVG(confidence_score), 3) AS avg_confidence_score
+FROM robotics_trials
+GROUP BY shift
+ORDER BY success_rate_pct DESC;
+
+
+/*
+Query 5 — Failure Root Cause Analysis
+Counts and ranks each failure reason to identify systemic issues. WHERE failure_reason IS NOT NULL filters to failed trials only.
+*/
+SELECT 
+  failure_reason,
+  COUNT(*) AS total_failures,
+  ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) AS pct_of_all_failures
+FROM robotics_trials
+WHERE failure_reason IS NOT NULL AND success_status='failure'
+GROUP BY failure_reason
+ORDER BY total_failures DESC;
+
+/* Query 6 — Monthly Performance Trend
+Tracks success rate, trial volume, and avg confidence score month over month to show whether lab performance is improving over 2024.
+*/
+SELECT 
+  DATE_FORMAT(collection_time, '%Y-%m') AS month,
+  COUNT(*) AS total_trials,
+  SUM(CASE WHEN success_status = 'Success' THEN 1 ELSE 0 END) AS successful_trials,
+  ROUND(SUM(CASE WHEN success_status = 'Success' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS success_rate_pct,
+  ROUND(AVG(confidence_score), 3) AS avg_confidence_score
+FROM robotics_trials
+GROUP BY month
+ORDER BY month;
+
+
+
+
+
